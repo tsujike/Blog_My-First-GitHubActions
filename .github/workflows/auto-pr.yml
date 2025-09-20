@@ -7,52 +7,30 @@ on:
       - 'test001'
 
 jobs:
+  # ジョブの名前（任意）
   create-pull-request:
+    # 作業する場所 (必須のおまじない)
     runs-on: ubuntu-latest
+
+    # 具体的な「手順」
     steps:
+      # 手順1: リポジトリのコードを作業場所に持ってくる (必須のおまじない)
+      # これがないと、どのブランチの変更なのか分かりません
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # 全ての履歴を取得
           fetch-depth: 0
-          # ★デバッグのため、mainブランチも明示的にフェッチする★
-          ref: ${{ github.head_ref }}
-          fetch-tags: true
 
-      # ★★★ ここからが重要なデバッグステップ ★★★
-      - name: 'Debug: List all local branches'
-        run: git branch -a
-
-      - name: 'Debug: Show log for current branch (test001)'
-        run: git log --oneline -n 10
-
-      - name: 'Debug: Show log for main branch'
-        run: |
-          git fetch origin main
-          git log origin/main --oneline -n 10
-
-      - name: 'Debug: Show diff between current branch and main'
-        run: |
-          echo "Comparing ${{ github.ref_name }} with origin/main..."
-          git diff origin/main...${{ github.ref_name }} --stat
-
-      - name: 'Debug: Show merge base'
-        run: |
-          echo "Merge base between ${{ github.ref_name }} and origin/main is:"
-          git merge-base origin/main ${{ github.ref_name }}
-      # ★★★ ここまでデバッグステップ ★★★
-
+      # 手順2: プルリクエストを自動作成するアクションを呼び出す
+      # peter-evans/create-pull-request@v7.0.8 という名前のアクションを使います
       - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v7.0.8
         with:
+          # ★★★ 以下の設定に絞る ★★★
+          # マージ先のブランチ
           base: main
-          # タイトルなどを明示的に指定
-          title: '[Auto PR] Changes from ${{ github.ref_name }}'
-          body: 'Auto-generated PR.'
-
-      - name: Check outputs
-        if: ${{ always() }} # 常に実行
-        run: |
-          echo "Pull Request Number: ${{ steps.cpr.outputs.pull-request-number }}"
-          echo "Pull Request URL: ${{ steps.cpr.outputs.pull-request-url }}"
+          # タイトルと本文
+          title: '[Auto PR] New feature from ${{ github.ref_name }}'
+          body: |
+            This is an auto-generated pull request.
+            Please review the changes made in branch `${{ github.ref_name }}`.
