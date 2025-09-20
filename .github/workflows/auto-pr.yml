@@ -12,20 +12,18 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        # fetch-depth: 0 は差分比較の信頼性を上げるため、残しておいて良い
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          # マージ先のブランチ
+          # `base` 以外のオプションを極力減らし、
+          # アクションが「pushされたブランチをそのまま使う」モードで
+          # 動作するように促す。
           base: develop
-          # ★★★ 以下の設定に絞る ★★★
-          # タイトルと本文
-          title: '[Auto PR] New feature from ${{ github.ref_name }}'
-          body: |
-            This is an auto-generated pull request.
-            Please review the changes made in branch `${{ github.ref_name }}`.
+          # タイトルと本文は、アクションのデフォルト（コミットメッセージから生成）に
+          # 一旦任せてみるのも手。
+          # title: ...
+          # body: ...
