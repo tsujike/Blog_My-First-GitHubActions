@@ -1,26 +1,120 @@
-# ワークフローの名前
-name: Auto Create Pull Request
+大変失礼いたしました。
+「そんなことはしていない」とのこと、承知いたしました。私の推測が誤っており、ご不快な思いをさせてしまい申し訳ありません。
 
-# ワークフローが動き出す「きっかけ」
+そうなると、状況はさらに不可解ですね。
+**「main と test001 の間には差分があるはずなのに、GitHub Actionsだけが『差分なし』と判断している」**という矛盾した状況です。
+
+考えられる残りの可能性
+
+GitHub Actionsのキャッシュの問題:
+
+非常に稀ですが、GitHub Actionsがブランチの履歴情報をキャッシュしていて、古い情報に基づいて差分比較を行ってしまっている可能性があります。
+
+actions/checkout の挙動の問題:
+
+fetch-depth: 0 を指定しても、何らかのエッジケースで、main と test001 の正しい分岐点 (merge base) を見つけられず、差分を正しく計算できていない可能性。
+
+リポジトリの履歴に特殊な状態がある:
+
+過去の git reset --hard や強制プッシュなどの操作により、ローカルとリモートの履歴に微妙な食い違いが生じ、それが差分検出に影響を与えている可能性。
+
+原因を切り分けるための最終手段：デバッグ情報の完全な取得
+
+こうなった以上、推測で話を進めるよりも、Actionsの実行環境内で実際に何が起きているのかを直接確認するのが最も確実です。
+
+前回ご提案したデバッグステップを追加したワークフローを、もう一度試してみていただくことは可能でしょうか。これが原因を特定するための最後の、そして最も強力な手段となります。
+
+もう一度、以下のワークフローで試してみてください。
+
+auto-pr-yml のデバッグ用バージョン:
+
+code
+Yaml
+download
+content_copy
+expand_less
+
+name: Auto Create Pull Request - DEBUG
+
 on:
   push:
-    # 今回は、どのブランチがpushされても動くように、ブランチ指定は一旦省略します
+    # ★テストのため、一時的に test001 ブランチ名に限定します★
+    branches:
+      - 'test001'
 
-# 実行される「作業」
 jobs:
-  # ジョブの名前（任意）
   create-pull-request:
-    # 作業する場所 (必須のおまじない)
     runs-on: ubuntu-latest
-
-    # 具体的な「手順」
     steps:
-      # 手順1: リポジトリのコードを作業場所に持ってくる (必須のおまじない)
-      # これがないと、どのブランチの変更なのか分かりません
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # 全ての履歴を取得
+          fetch-depth: 0
+          # ★デバッグのため、mainブランチも明示的にフェッチする★
+          ref: ${{ github.head_ref }}
+          fetch-tags: true
 
-      # 手順2: プルリクエストを自動作成するアクションを呼び出す
-      # peter-evans/create-pull-request@v7.0.8 という名前のアクションを使います
+      # ★★★ ここからが重要なデバッグステップ ★★★
+      - name: 'Debug: List all local branches'
+        run: git branch -a
+
+      - name: 'Debug: Show log for current branch (test001)'
+        run: git log --oneline -n 10
+
+      - name: 'Debug: Show log for main branch'
+        run: |
+          git fetch origin main
+          git log origin/main --oneline -n 10
+
+      - name: 'Debug: Show diff between current branch and main'
+        run: |
+          echo "Comparing ${{ github.ref_name }} with origin/main..."
+          git diff origin/main...${{ github.ref_name }} --stat
+
+      - name: 'Debug: Show merge base'
+        run: |
+          echo "Merge base between ${{ github.ref_name }} and origin/main is:"
+          git merge-base origin/main ${{ github.ref_name }}
+      # ★★★ ここまでデバッグステップ ★★★
+
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7.0.8
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: main
+          # タイトルなどを明示的に指定
+          title: '[Auto PR] Changes from ${{ github.ref_name }}'
+          body: 'Auto-generated PR.'
+
+      - name: Check outputs
+        if: ${{ always() }} # 常に実行
+        run: |
+          echo "Pull Request Number: ${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Pull Request URL: ${{ steps.cpr.outputs.pull-request-url }}"
+
+このワークフローで試していただきたいこと
+
+この内容で .github/workflows/auto-pr.yml を更新し、main ブランチに保存します。
+
+GitHub上で、既存の test001 ブランチを一度削除します。
+
+main ブランチから、再度 test001 という名前で新しいブランチを作成します。
+
+作成した test001 ブランチ上で、README.md に何か新しい変更を加えてコミット（保存）します。
+
+この push をきっかけにワークフローが実行されるので、Actionsタブで実行ログを確認します。
+
+ログで確認すべきポイント:
+
+Debug: Show log for current branch (test001): README.md を更新したコミットが表示されているか？
+
+Debug: Show log for main branch: main ブランチの最新のコミットが表示されているか？
+
+Debug: Show diff between current branch and main: ここで差分が表示されるかどうかが決定的です。
+
+Debug: Show merge base: 2つのブランチの共通の祖先がどこになっているか。
+
+このデバッグログを見れば、Actionsの実行環境がブランチの履歴をどのように認識しているかが明らかになり、なぜ「差分がない」と判断されているのか、その根本原因が必ず特定できるはずです。
+
+度重なる試行錯誤で大変恐縮ですが、このデバッグ手順にご協力いただけますでしょうか。
