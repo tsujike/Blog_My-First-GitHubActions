@@ -2,9 +2,6 @@ name: Auto Create Pull Request - DEBUG
 
 on:
   push:
-    # ★テストのため、一時的に test001 ブランチ名に限定します★
-    branches:
-      - 'test001'
 
 jobs:
   # ジョブの名前（任意）
