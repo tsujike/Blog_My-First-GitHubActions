@@ -2,6 +2,8 @@ name: Auto Create Pull Request - DEBUG
 
 on:
   push:
+    branches:
+      - 'feature/**'    # feature/*ブランチにマッチ
 
 jobs:
   # ジョブの名前（任意）
