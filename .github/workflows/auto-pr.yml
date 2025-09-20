@@ -56,29 +56,3 @@ jobs:
         run: |
           echo "Pull Request Number: ${{ steps.cpr.outputs.pull-request-number }}"
           echo "Pull Request URL: ${{ steps.cpr.outputs.pull-request-url }}"
-
-このワークフローで試していただきたいこと
-
-この内容で .github/workflows/auto-pr.yml を更新し、main ブランチに保存します。
-
-GitHub上で、既存の test001 ブランチを一度削除します。
-
-main ブランチから、再度 test001 という名前で新しいブランチを作成します。
-
-作成した test001 ブランチ上で、README.md に何か新しい変更を加えてコミット（保存）します。
-
-この push をきっかけにワークフローが実行されるので、Actionsタブで実行ログを確認します。
-
-ログで確認すべきポイント:
-
-Debug: Show log for current branch (test001): README.md を更新したコミットが表示されているか？
-
-Debug: Show log for main branch: main ブランチの最新のコミットが表示されているか？
-
-Debug: Show diff between current branch and main: ここで差分が表示されるかどうかが決定的です。
-
-Debug: Show merge base: 2つのブランチの共通の祖先がどこになっているか。
-
-このデバッグログを見れば、Actionsの実行環境がブランチの履歴をどのように認識しているかが明らかになり、なぜ「差分がない」と判断されているのか、その根本原因が必ず特定できるはずです。
-
-度重なる試行錯誤で大変恐縮ですが、このデバッグ手順にご協力いただけますでしょうか。
