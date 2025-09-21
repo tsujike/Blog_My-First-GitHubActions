@@ -1,0 +1,46 @@
+# ワークフローの名前
+name: Auto Create Pull Request
+
+# ワークフローが動き出す「きっかけ」
+on:
+  push:
+    # developブランチへのpushがきっかけ
+    branches:
+      - 'develop'
+
+# 実行される「作業」
+jobs:
+  # ジョブの名前
+  create-pull-request-job:
+    # 作業する場所
+    runs-on: ubuntu-latest
+    # 必要な権限
+    permissions:
+      pull-requests: write # PR作成権限
+      contents: read     # ブランチ情報などを読む権限
+
+    # 具体的な「手順」
+    steps:
+      - name: Create Pull Request
+        uses: actions/github-script@v7
+        with:
+          # リポジトリを操作するための許可証 (このまま書けばOK)
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # 実行するスクリプト
+          script: |
+            // 1. 必要な情報を準備します
+            const { repo, owner } = context.repo; // リポジトリ名とオーナー名
+            const headBranch = '${{ github.ref_name }}'; // pushされたブランチ名 (develop)
+            const baseBranch = 'main';                // マージ先のブランチ
+            const prTitle = 'Sync develop to main';   // PRのタイトル
+
+            // 2. GitHub APIを呼び出してプルリクエストを作成します
+            await github.rest.pulls.create({
+              owner: owner,
+              repo: repo,
+              head: headBranch,
+              base: baseBranch,
+              title: prTitle,
+              body: `Automated pull request to sync changes from \`${headBranch}\` to \`${baseBranch}\`.`
+            });
