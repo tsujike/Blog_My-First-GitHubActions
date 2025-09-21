@@ -33,7 +33,7 @@ jobs:
             const { repo, owner } = context.repo; // リポジトリ名とオーナー名
             const headBranch = '${{ github.ref_name }}'; // pushされたブランチ名 (develop)
             const baseBranch = 'main';                // マージ先のブランチ
-            const prTitle = 'Sync develop to main';   // PRのタイトル
+            const prTitle = 'はじめての自動PR作成';   // PRのタイトル
 
             // 2. GitHub APIを呼び出してプルリクエストを作成します
             await github.rest.pulls.create({
