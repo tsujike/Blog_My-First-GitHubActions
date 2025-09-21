@@ -1,0 +1,25 @@
+# ワークフローの名前
+name: 毎日の天気予報
+
+# ワークフローが動き出す「きっかけ」
+on:
+  # スケジュール実行
+  schedule:
+    # 毎日22:00 (UTC) に実行します
+    # 日本時間では午前7時です (22 + 9 - 24 = -2 + 24 = 22 -> 22+9 = 31 -> 31-24 = 7)
+    # 日本時間では午前7時です (22 + 9 = 31 -> 31 - 24 = 7時)
+    - cron: '0 22 * * *'
+  # 手動でも実行できるように workflow_dispatch を追加
+  workflow_dispatch:
+
+# 実行される「作業」
+jobs:
+  # ジョブの名前
+  get-weather-forecast:
+    # 作業する場所
+    runs-on: ubuntu-latest
+
+    # 具体的な「手順」
+    steps:
+      - name: "東京の天気予報を取得して表示します"
+        run: curl wttr.in/Tokyo?lang=ja&format=4
