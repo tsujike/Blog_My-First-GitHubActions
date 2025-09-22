@@ -12,32 +12,55 @@ on:
 jobs:
   # ジョブの名前
   create-pull-request-job:
-    # 作業する仮想環境（ランナー）
+    # 作業する場所
     runs-on: ubuntu-latest
+    # 必要な権限
+    permissions:
+      pull-requests: write # PR作成権限
+      contents: read     # ブランチ情報などを読む権限
 
     # 具体的な「手順」
     steps:
-      - name: Create Pull Request
+      - name: Create Pull Request if not exists
         # actions/github-scriptのバージョンは@v7（最新）を使用する
         uses: actions/github-script@v7
         with:
-          # リポジトリを操作するための許可証 (このまま書けばOK)
+          # リポジトリを操作するための許可証
           github-token: ${{ secrets.GITHUB_TOKEN }}
-
           # 実行するスクリプト
           script: |
             // 1. 必要な情報を準備します
-            const { repo, owner } = context.repo; // リポジトリ名とオーナー名
-            const headBranch = '${{ github.ref_name }}'; // pushされたブランチ名 (develop)
-            const baseBranch = 'main';                // マージ先のブランチ
-            const prTitle = 'はじめての自動PR作成';   // PRのタイトル
+            const { repo, owner } = context.repo;
+            const headBranch = '${{ github.ref_name }}'; // develop
+            const baseBranch = 'main';
+            const prTitle = 'はじめての自動PR作成';
 
-            // 2. GitHub APIを呼び出してプルリクエストを作成します
+            // 2. ★★★ ここからが追加部分 ★★★
+            // 既存のオープンなPRがないか、APIに問い合わせてチェックします
+            console.log(`既存のオープンなPRがないか、以下のブランチからチェックします ${headBranch} to ${baseBranch}...`);
+            const { data: existingPulls } = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${headBranch}`, // 「どのリポジトリのどのブランチ」かを明確に指定
+              base: baseBranch,
+              state: 'open' // オープンなPRのみを対象
+            });
+            
+            // 3. もし既存のPRが見つかったら、メッセージを残して終了します
+            if (existingPulls.length > 0) {
+              console.log(`既存のオープンなPRがあります。: ${existingPulls[0].html_url}`);
+              console.log('PR作成をスキップします。');
+              return; // return; でスクリプトの実行をここで止めます
+            }
+            // ★★★ ここまでが追加部分 ★★★
+
+            // 4. 既存のPRがなければ、新しいPRを作成します
+            console.log('既存のPRはありませんでした。新規PRを作成します。');
             await github.rest.pulls.create({
-              owner: owner,
-              repo: repo,
+              owner,
+              repo,
               head: headBranch,
               base: baseBranch,
               title: prTitle,
-              body: `Automated pull request to sync changes from \`${headBranch}\` to \`${baseBranch}\`.`
+              body: `自動PRが作成されました。\`${headBranch}\` to \`${baseBranch}\`.`
             });
